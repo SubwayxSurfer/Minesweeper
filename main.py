@@ -2,18 +2,17 @@ import pygame as pg
 from tiles import Board
 #30 x 16 grid
 
-GRID_ROWS = 30
-GRID_COLS = 16
+ROW_NUMBER = 16
+COL_NUMBER = 30
 TILE_SIZE = 30
 
 pg.init()
 
 def main() -> None:
     screen = pg.display.set_mode((1000,600))
-    board = Board((GRID_ROWS,GRID_COLS))
+    board = Board(ROW_NUMBER,COL_NUMBER,TILE_SIZE)
     board.populate_board()
-    board_surface = board.draw_board((GRID_ROWS*TILE_SIZE,GRID_COLS*TILE_SIZE))
-    print(board_surface.get_size(),screen.get_size())
+    board_surface = board.draw_board()
 
     running = True
     while running:

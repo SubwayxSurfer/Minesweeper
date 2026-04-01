@@ -11,9 +11,11 @@ class Tile:
 
 
 class Board:
-    def __init__(self, board_size:tuple[int,int]) -> None:
+    def __init__(self, row_size:int, col_size:int, tile_size:int) -> None:
         self.tile_list:list[list[Tile]] = []
-        self.board_size = board_size
+        self.row_size = row_size
+        self.col_size = col_size
+        self.tile_size = tile_size
 
         self.tile_img_dict = {
             "1" : pg.Surface.convert_alpha(pg.image.load("assets/Tile1.png")),
@@ -30,27 +32,28 @@ class Board:
             "mine" : pg.Surface.convert_alpha(pg.image.load("assets/TileMine.png")),
             "unknown" : pg.Surface.convert_alpha(pg.image.load("assets/TileUnknown.png")),
         }
-        print(self.tile_img_dict["1"].get_size())
+
+        self.tile_img_dict = {key : pg.transform.scale(value,(tile_size,tile_size)) for key, value in self.tile_img_dict.items()}
 
     def populate_board(self) -> None:
-        for row in range(self.board_size[1]):
+        for row in range(self.row_size):
             self.tile_list.append([])
-            for column in range(self.board_size[0]):
+            for column in range(self.col_size):
                 tile = Tile(row,column)
                 self.tile_list[row].append(tile)
 
-    def draw_board(self, board_dimensions:tuple[int,int]) -> pg.Surface:
+    def draw_board(self) -> pg.Surface:
         if not self.tile_list:
             return "Not populated"
         
-        board_surface = pg.Surface(board_dimensions)
-        col_size = board_dimensions[0] // self.board_size[0]
-        row_size = board_dimensions[1] // self.board_size[1]
-        tile_size = min(row_size,col_size)
+        board_surface = pg.Surface((self.col_size*self.tile_size,self.row_size*self.tile_size))
 
-        for index,tile_row in enumerate(self.tile_list):
+        count = 0
+        for tile_row in self.tile_list:
             for tile in tile_row:
-                tile_rect = tile.scale_pos_to_board(tile_size)
-                board_surface.blit(self.tile_img_dict["1"],tile_rect.topleft,tile_rect)
+                count += 1
+                tile_rect = tile.scale_pos_to_board(self.tile_size)
+                board_surface.blit(self.tile_img_dict["1"],tile_rect.topleft)
+
 
         return board_surface
