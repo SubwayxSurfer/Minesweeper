@@ -1,3 +1,5 @@
-x = (0,1)
-if x == (0,1):
+x:set[int] = set()
+x.add(1)
+x.add(2)
+if x:
     print(x)

@@ -59,8 +59,9 @@ class Board:
             "mine" : pg.Surface.convert_alpha(pg.image.load("assets/TileMine.png")),
             "unknown" : pg.Surface.convert_alpha(pg.image.load("assets/TileUnknown.png")),
         }
-
         self.tile_img_dict = {key : pg.transform.scale(value,(tile_size,tile_size)) for key, value in self.tile_img_dict.items()}
+
+        self.draw_queue:set[Tile] = set()
 
     def populate_board(self) -> None:
         for row in range(self.row_size):
@@ -69,35 +70,44 @@ class Board:
                 tile = Tile(row, column, self.tile_size, "unknown")
                 self.tile_list[row].append(tile)
 
-    def mouse_to_board(self, mouse_pos:tuple[int,int]) -> tuple[int,int]|False:
+    def mouse_to_board(self, mouse_pos:tuple[int,int]) -> tuple[int,int] | None:
         mouse_x, mouse_y = mouse_pos
         board_x, board_y = self.board_size
 
         #if board is top left
         if not (0 <= mouse_x < board_x and 0 <= mouse_y < board_y):
-            return False
+            return None
 
         mouse_row = mouse_y // self.tile_size
         mouse_col = mouse_x // self.tile_size
 
         return (mouse_row,mouse_col)
     
-    def get_tile(self, tile_pos:tuple[int,int]) -> None:
+    def get_tile(self, tile_pos:tuple[int,int]) -> Tile:
         row,col = tile_pos
         tile = self.tile_list[row][col]
         return tile
 
     def hover_tile(self, tile:Tile) -> None:
         tile.hover()
-        self.draw_tile(tile)
+        self.append_draw(tile)
 
     def unhover_tile(self, tile:Tile) -> None:
         tile.unhover()
-        self.draw_tile(tile)
+        self.append_draw(tile)
 
     def display_tile(self, tile:Tile) -> None:
         tile.display_true_state()
-        self.draw_tile(tile)
+        self.append_draw(tile)
+    
+    def append_draw(self, tile:Tile) -> None:
+        self.draw_queue.add(tile)
+    
+    def draw_frame(self):
+        if self.draw_queue:
+            for tile in self.draw_queue:
+                self.draw_tile(tile)
+            self.draw_queue.clear()
 
     def draw_tile(self,tile:Tile):
         tile_rect = tile.get_tile_rect()
