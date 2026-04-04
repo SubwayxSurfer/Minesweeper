@@ -1,30 +1,39 @@
 import pygame as pg
 
 class Tile:
-    def __init__(self, row:int, column:int, tile_size:int, base_state:str) -> None:
-        self.row = row
-        self.col = column
-        self.tile_rect = pg.Rect(column*tile_size,row*tile_size,tile_size,tile_size)
+    def __init__(self, row:int, column:int, tile_size:int) -> None:
+        self.row:int = row
+        self.col:int = column
+        self.tile_rect:pg.Rect = pg.Rect(column*tile_size,row*tile_size,tile_size,tile_size)
 
-        self.base_state = base_state
-        self.displayed_state = base_state
-        self.true_state = "1"
+        self.base_state:str = "unknown"
+        self.displayed_state:str = self.base_state
+        self.true_state:str = "1"
 
-        self.confirmed = False
+        self.confirmed:bool = False
+        self.flagged:bool = False
 
     def get_tile_rect(self) -> pg.Rect:
         return self.tile_rect
     
     def hover(self) -> None:
-        if not self.confirmed:
+        if not self.flagged:
             self.set_display_state("empty")
     
     def unhover(self) -> None:
-        if not self.confirmed:
+        if not self.flagged:
             self.set_display_state(self.base_state)
     
+    def flag(self) -> None:
+        if self.flagged:
+            self.set_display_state(self.base_state)
+        else:
+            self.set_display_state("flag")
+        self.flagged = not self.flagged
+    
     def set_display_state(self, new_state:str) -> None:
-        self.displayed_state = new_state
+        if not self.confirmed:
+            self.displayed_state = new_state
 
     def get_display_state(self) -> str:
         return self.displayed_state
@@ -38,13 +47,13 @@ class Board:
     def __init__(self, row_size:int, col_size:int, tile_size:int) -> None:
         self.tile_list:list[list[Tile]] = []
 
-        self.row_size = row_size
-        self.col_size = col_size
-        self.tile_size = tile_size
-        self.board_size = (col_size*tile_size,row_size*tile_size)
-        self.board_surface = pg.Surface(self.board_size)
+        self.row_size:int = row_size
+        self.col_size:int = col_size
+        self.tile_size:int = tile_size
+        self.board_size:tuple[int,int] = (col_size*tile_size,row_size*tile_size)
+        self.board_surface:pg.Surface = pg.Surface(self.board_size)
 
-        self.tile_img_dict = {
+        self.tile_img_dict:dict[str,pg.Surface] = {
             "1" : pg.Surface.convert_alpha(pg.image.load("assets/Tile1.png")),
             "2" : pg.Surface.convert_alpha(pg.image.load("assets/Tile2.png")),
             "3" : pg.Surface.convert_alpha(pg.image.load("assets/Tile3.png")),
@@ -67,7 +76,7 @@ class Board:
         for row in range(self.row_size):
             self.tile_list.append([])
             for column in range(self.col_size):
-                tile = Tile(row, column, self.tile_size, "unknown")
+                tile = Tile(row, column, self.tile_size)
                 self.tile_list[row].append(tile)
 
     def mouse_to_board(self, mouse_pos:tuple[int,int]) -> tuple[int,int] | None:
