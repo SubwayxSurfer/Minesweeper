@@ -69,8 +69,10 @@ class Board:
             "unknown" : pg.Surface.convert_alpha(pg.image.load("assets/TileUnknown.png")),
         }
         self.tile_img_dict = {key : pg.transform.scale(value,(tile_size,tile_size)) for key, value in self.tile_img_dict.items()}
-
         self.draw_queue:set[Tile] = set()
+        
+        self.displayed_count:int = 0
+        self.mine_count = 99
 
     def populate_board(self) -> None:
         for row in range(self.row_size):
@@ -106,8 +108,8 @@ class Board:
         self.append_draw(tile)
 
     def display_tile(self, tile:Tile) -> None:
-        tile.display_true_state()
         self.append_draw(tile)
+        tile.display_true_state()
     
     def append_draw(self, tile:Tile) -> None:
         self.draw_queue.add(tile)
