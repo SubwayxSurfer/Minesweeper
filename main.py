@@ -15,11 +15,11 @@ def main() -> None:
 
     tile = None
 
-
     left_down = False
+    right_down = False
     running = True
     while running:
-        left, _, _ = pg.mouse.get_pressed()
+        left, _, right = pg.mouse.get_pressed()
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 running = False
@@ -39,14 +39,26 @@ def main() -> None:
             elif previous_tile:
                 board.unhover_tile(previous_tile)
 
-
         elif left_down:
             left_down = False
             mouse_pos = pg.mouse.get_pos()
             tile_pos = board.mouse_to_board(mouse_pos)
             if tile_pos:
                 tile = board.get_tile(tile_pos)
-                board.display_tile(tile)
+                if board.display_tile(tile):
+                    running = False
+                
+        if right and not right_down:
+            right_down = True
+            mouse_pos = pg.mouse.get_pos()
+            tile_pos = board.mouse_to_board(mouse_pos)
+            if tile_pos:
+                tile = board.get_tile(tile_pos)
+                board.flag_tile(tile)
+                
+        elif not right:
+            right_down = False
+            
         
         board.draw_frame()
         screen.blit(board.get_board_surface(),(0,0))

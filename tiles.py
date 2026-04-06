@@ -1,4 +1,5 @@
 import pygame as pg
+from random import sample, choice
 
 class Tile:
     def __init__(self, row:int, column:int, tile_size:int) -> None:
@@ -8,7 +9,7 @@ class Tile:
 
         self.base_state:str = "unknown"
         self.displayed_state:str = self.base_state
-        self.true_state:str = "1"
+        self.true_state:str = "0"
 
         self.confirmed:bool = False
         self.flagged:bool = False
@@ -16,9 +17,12 @@ class Tile:
     def get_tile_rect(self) -> pg.Rect:
         return self.tile_rect
     
+    def get_pos(self) -> tuple[int,int]:
+        return (self.row,self.col)
+    
     def hover(self) -> None:
         if not self.flagged:
-            self.set_display_state("empty")
+            self.set_display_state("0")
     
     def unhover(self) -> None:
         if not self.flagged:
@@ -30,6 +34,13 @@ class Tile:
         else:
             self.set_display_state("flag")
         self.flagged = not self.flagged
+        self.confirmed = not self.confirmed
+    
+    def set_true_state(self, true_state:str) -> None:
+        self.true_state = true_state
+        
+    def get_true_state(self) -> str:
+        return self.true_state
     
     def set_display_state(self, new_state:str) -> None:
         if not self.confirmed:
@@ -40,6 +51,8 @@ class Tile:
     
     def display_true_state(self) -> None:
         self.displayed_state = self.true_state
+        if self.true_state == "mine":
+            self.displayed_state = "exploded"
         self.confirmed = True
 
 
@@ -49,6 +62,7 @@ class Board:
 
         self.row_size:int = row_size
         self.col_size:int = col_size
+        self.tile_count = col_size*row_size
         self.tile_size:int = tile_size
         self.board_size:tuple[int,int] = (col_size*tile_size,row_size*tile_size)
         self.board_surface:pg.Surface = pg.Surface(self.board_size)
@@ -62,7 +76,7 @@ class Board:
             "6" : pg.Surface.convert_alpha(pg.image.load("assets/Tile6.png")),
             "7" : pg.Surface.convert_alpha(pg.image.load("assets/Tile7.png")),
             "8" : pg.Surface.convert_alpha(pg.image.load("assets/Tile8.png")),
-            "empty" : pg.Surface.convert_alpha(pg.image.load("assets/TileEmpty.png")),
+            "0" : pg.Surface.convert_alpha(pg.image.load("assets/TileEmpty.png")),
             "exploded" : pg.Surface.convert_alpha(pg.image.load("assets/TileExploded.png")),
             "flag" : pg.Surface.convert_alpha(pg.image.load("assets/TileFlag.png")),
             "mine" : pg.Surface.convert_alpha(pg.image.load("assets/TileMine.png")),
@@ -73,6 +87,8 @@ class Board:
         
         self.displayed_count:int = 0
         self.mine_count = 99
+        
+        self.unpopulated = True
 
     def populate_board(self) -> None:
         for row in range(self.row_size):
@@ -81,6 +97,42 @@ class Board:
                 tile = Tile(row, column, self.tile_size)
                 self.tile_list[row].append(tile)
 
+    def populate_mines(self, initial_tile:Tile) -> None:
+        general_pos = self.board_to_general(initial_tile.get_pos())
+        general_mines = sample(range(self.tile_count), self.mine_count)
+        
+        if general_pos in general_mines:
+            non_mine_set = set(range(self.tile_count)) - set(general_mines)
+            mine_pos = choice(list(non_mine_set))
+            
+            general_mines.remove(general_pos)
+            general_mines.append(mine_pos)
+        
+        board_mines = [self.general_to_board(general_pos) for general_pos in general_mines]
+        
+        for board_pos in board_mines:
+            tile = self.get_tile(board_pos)
+            tile.set_true_state("mine")
+            
+        self.populate_true_states()
+
+    def populate_true_states(self) -> None:
+        for row in range(self.row_size):
+            for col in range(self.col_size):
+                tile = self.get_tile((row,col))
+                if tile.get_true_state() == "mine":
+                    continue
+                adj_tiles = self.get_adj_tiles((row,col))
+                adj_mine_count = sum([True for adj_tile in adj_tiles if adj_tile.get_true_state() ==  "mine"])
+                true_state_img = str(adj_mine_count)
+                tile.set_true_state(true_state_img)
+                
+    def general_to_board(self, general_pos:int) -> tuple[int,int]:
+        return (general_pos//self.col_size, general_pos%self.col_size)
+    
+    def board_to_general(self, board_pos:tuple[int,int]) -> int:
+        return board_pos[0]*self.col_size + board_pos[1]
+        
     def mouse_to_board(self, mouse_pos:tuple[int,int]) -> tuple[int,int] | None:
         mouse_x, mouse_y = mouse_pos
         board_x, board_y = self.board_size
@@ -94,10 +146,31 @@ class Board:
 
         return (mouse_row,mouse_col)
     
+    def verify_pos(self, tile_pos:tuple[int,int]) -> bool:
+        row, col = tile_pos
+        if 0 <= row < self.row_size and 0 <= col < self.col_size:
+            return True
+        return False
+    
     def get_tile(self, tile_pos:tuple[int,int]) -> Tile:
-        row,col = tile_pos
+        row, col = tile_pos
         tile = self.tile_list[row][col]
         return tile
+
+    def get_adj_tiles(self, tile_pos:tuple[int,int]) -> list[Tile]:
+        adj_tiles:list[Tile] = []
+        
+        adj_changes = [-1,0,1]
+        for row_change in adj_changes:
+            for col_change in adj_changes:
+                if row_change == 0 and col_change == 0:
+                    continue
+                
+                adj_pos = (tile_pos[0] + row_change, tile_pos[1] + col_change)
+                if self.verify_pos(adj_pos):
+                    adj_tiles.append(self.get_tile(adj_pos))
+                    
+        return adj_tiles
 
     def hover_tile(self, tile:Tile) -> None:
         tile.hover()
@@ -107,9 +180,31 @@ class Board:
         tile.unhover()
         self.append_draw(tile)
 
-    def display_tile(self, tile:Tile) -> None:
+    def flag_tile(self, tile:Tile) -> None:
+        tile.flag()
         self.append_draw(tile)
-        tile.display_true_state()
+
+    def display_tile(self, tile:Tile) -> bool:
+        if not tile.confirmed:
+            if self.unpopulated:
+                self.populate_mines(tile)
+                self.unpopulated = False
+            
+            tile.display_true_state()
+            
+            true_state = tile.get_true_state()
+            if true_state == "0":
+                self.display_adj_tiles(tile)
+            elif true_state == "mine":
+                return True
+                
+            self.append_draw(tile)
+        return False
+    
+    def display_adj_tiles(self, starting_tile:Tile) -> None:
+        adj_tiles = self.get_adj_tiles(starting_tile.get_pos())
+        for tile in adj_tiles:
+            self.display_tile(tile)
     
     def append_draw(self, tile:Tile) -> None:
         self.draw_queue.add(tile)
