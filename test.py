@@ -1,11 +1,7 @@
-from random import sample
+x = [1,2,3]
 
-total_cells = 30 * 16
-mine_count = 99
-
-x = set(sample(range(total_cells),mine_count))
-y = set(range(total_cells))
-
-a = [True,True]
-
-print(sum(a))
+for i in x:
+    if i != 2:
+        x.remove(i)
+        
+print(x)
