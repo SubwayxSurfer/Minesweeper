@@ -1,7 +1,5 @@
-x = [1,2,3]
+from board import Board
 
-for i in x:
-    if i != 2:
-        x.remove(i)
-        
-print(x)
+board = Board(16,30,99)
+board.populate_board()
+board.populate_mines(board.tile_at((0,0)))
